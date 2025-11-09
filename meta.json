@@ -1,31 +1,83 @@
-{
-    "labels": [
-        "number"
-    ],
-    "amount_of_images": 32,
-    "image_color_mode": "gray",
-    "image_size": "size_32",
-    "split": {
-        "train": 512,
-        "val": 98,
-        "test": 227
-    },
-    "description": "All the images can be found in the data folder, the images are separated into train/test/val folders with a ratio of 60%/10%/30%",
-    "total_creation_time": "0:04:49.535818",
-    "augmentation": {
-        "active": false,
-        "augmentation_count": 0,
-        "augmentations": [],
-        "description": "How to know which image has been augmented? Images with _aug suffix at the train folder"
-    },
-    "about": {
-        "provide_by": "www.images.cv",
-        "usefull_links": [
-            "images.cv/how-to-use",
-            "images.cv/faq",
-            "images.cv/computer-vision-dataset-categories",
-            "images.cv/computer-vision-image-datasets-index",
-            "images.cv/contact"
-        ]
-    }
-}
+import tensorflow as tf
+import json
+import os
+
+# === 1. Chargement du fichier meta.json ===
+with open("chemin/vers/meta.json", "r") as f:
+    meta = json.load(f)
+
+# Lire les infos du dataset
+image_color_mode = meta["image_color_mode"]     # "gray"
+image_size = (32, 32)                           # d'après "size_32"
+split = meta["split"]
+
+# === 2. Définir les chemins ===
+base_dir = "chemin/vers/data"  # le dossier principal contenant train/, val/, test/
+
+train_dir = os.path.join(base_dir, "train")
+val_dir = os.path.join(base_dir, "val")
+test_dir = os.path.join(base_dir, "test")
+
+# === 3. Charger les datasets ===
+color_mode = "grayscale" if image_color_mode == "gray" else "rgb"
+
+train_ds = tf.keras.utils.image_dataset_from_directory(
+    train_dir,
+    image_size=image_size,
+    color_mode=color_mode,
+    batch_size=32,
+    label_mode="int",
+    shuffle=True
+)
+
+val_ds = tf.keras.utils.image_dataset_from_directory(
+    val_dir,
+    image_size=image_size,
+    color_mode=color_mode,
+    batch_size=32,
+    label_mode="int",
+    shuffle=True
+)
+
+test_ds = tf.keras.utils.image_dataset_from_directory(
+    test_dir,
+    image_size=image_size,
+    color_mode=color_mode,
+    batch_size=32,
+    label_mode="int",
+    shuffle=False
+)
+
+# === 4. Normalisation des images ===
+train_ds = train_ds.map(lambda x, y: (x / 255.0, y))
+val_ds = val_ds.map(lambda x, y: (x / 255.0, y))
+test_ds = test_ds.map(lambda x, y: (x / 255.0, y))
+
+# === 5. Création du modèle CNN ===
+model = tf.keras.Sequential([
+    tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 1)),
+    tf.keras.layers.MaxPooling2D((2, 2)),
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPooling2D((2, 2)),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(10, activation='softmax')  # 10 chiffres possibles (0–9)
+])
+
+# === 6. Compilation ===
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# === 7. Entraînement ===
+history = model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=10
+)
+
+# === 8. Évaluation sur le test set ===
+test_loss, test_acc = model.evaluate(test_ds)
+print(f"Test accuracy: {test_acc:.3f}")
