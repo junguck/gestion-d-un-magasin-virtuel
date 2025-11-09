@@ -1,0 +1,31 @@
+{
+    "labels": [
+        "number"
+    ],
+    "amount_of_images": 32,
+    "image_color_mode": "gray",
+    "image_size": "size_32",
+    "split": {
+        "train": 512,
+        "val": 98,
+        "test": 227
+    },
+    "description": "All the images can be found in the data folder, the images are separated into train/test/val folders with a ratio of 60%/10%/30%",
+    "total_creation_time": "0:04:49.535818",
+    "augmentation": {
+        "active": false,
+        "augmentation_count": 0,
+        "augmentations": [],
+        "description": "How to know which image has been augmented? Images with _aug suffix at the train folder"
+    },
+    "about": {
+        "provide_by": "www.images.cv",
+        "usefull_links": [
+            "images.cv/how-to-use",
+            "images.cv/faq",
+            "images.cv/computer-vision-dataset-categories",
+            "images.cv/computer-vision-image-datasets-index",
+            "images.cv/contact"
+        ]
+    }
+}
