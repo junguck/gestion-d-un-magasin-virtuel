@@ -1,19 +1,18 @@
 import tensorflow as tf
 import json
 import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 # === 1. Chargement du fichier meta.json ===
 with open("chemin/vers/meta.json", "r") as f:
     meta = json.load(f)
 
-# Lire les infos du dataset
 image_color_mode = meta["image_color_mode"]     # "gray"
 image_size = (32, 32)                           # d'après "size_32"
-split = meta["split"]
 
 # === 2. Définir les chemins ===
-base_dir = "chemin/vers/data"  # le dossier principal contenant train/, val/, test/
-
+base_dir = "chemin/vers/data"  # dossier contenant train/, val/, test/
 train_dir = os.path.join(base_dir, "train")
 val_dir = os.path.join(base_dir, "val")
 test_dir = os.path.join(base_dir, "test")
@@ -53,7 +52,17 @@ train_ds = train_ds.map(lambda x, y: (x / 255.0, y))
 val_ds = val_ds.map(lambda x, y: (x / 255.0, y))
 test_ds = test_ds.map(lambda x, y: (x / 255.0, y))
 
-# === 5. Création du modèle CNN ===
+# === 5. Prévisualiser quelques images ===
+plt.figure(figsize=(8, 8))
+for images, labels in train_ds.take(1):
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(tf.squeeze(images[i]), cmap='gray')
+        plt.title(f"Label: {labels[i].numpy()}")
+        plt.axis("off")
+plt.show()
+
+# === 6. Création du modèle CNN ===
 model = tf.keras.Sequential([
     tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 1)),
     tf.keras.layers.MaxPooling2D((2, 2)),
@@ -61,23 +70,57 @@ model = tf.keras.Sequential([
     tf.keras.layers.MaxPooling2D((2, 2)),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(10, activation='softmax')  # 10 chiffres possibles (0–9)
+    tf.keras.layers.Dense(10, activation='softmax')  # 10 classes (0–9)
 ])
 
-# === 6. Compilation ===
+# === 7. Compilation ===
 model.compile(
     optimizer='adam',
     loss='sparse_categorical_crossentropy',
     metrics=['accuracy']
 )
 
-# === 7. Entraînement ===
+# === 8. Entraînement ===
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=10
 )
 
-# === 8. Évaluation sur le test set ===
+# === 9. Courbes de performance ===
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 2, 1)
+plt.plot(history.history['accuracy'], label='Train')
+plt.plot(history.history['val_accuracy'], label='Validation')
+plt.title('Accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Taux de précision')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(history.history['loss'], label='Train')
+plt.plot(history.history['val_loss'], label='Validation')
+plt.title('Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Erreur')
+plt.legend()
+
+plt.show()
+
+# === 10. Évaluation sur le test set ===
 test_loss, test_acc = model.evaluate(test_ds)
-print(f"Test accuracy: {test_acc:.3f}")
+print(f"\n✅ Test accuracy: {test_acc:.3f}")
+
+# === 11. Tester le modèle sur quelques images ===
+for images, labels in test_ds.take(1):
+    predictions = model.predict(images)
+    predicted_labels = np.argmax(predictions, axis=1)
+
+    plt.figure(figsize=(8, 8))
+    for i in range(9):
+        ax = plt.subplot(3, 3, i + 1)
+        plt.imshow(tf.squeeze(images[i]), cmap='gray')
+        plt.title(f"Prédit: {predicted_labels[i]} (Réel: {labels[i].numpy()})")
+        plt.axis("off")
+    plt.show()
